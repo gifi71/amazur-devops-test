@@ -1,6 +1,21 @@
 ---
 
 services:
+  postgres:
+    build: ../postgres
+    container_name: postgres
+    env_file:
+      - ../.env
+    volumes:
+      - ../pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
   app:
     build: ..
     container_name: app
@@ -9,17 +24,15 @@ services:
     env_file:
       - ../.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
-
-  postgres:
-    image: postgres:14
-    container_name: postgres
-    env_file:
-      - ../.env
-    volumes:
-      - ../pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   migrate:
     build: ..
@@ -28,5 +41,6 @@ services:
     env_file:
       - ../.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: "no"
