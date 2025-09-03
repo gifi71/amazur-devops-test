@@ -66,17 +66,21 @@ jobs:
       # 7. Run containers and wait for healthcheck
       - name: Start containers and wait for health
         run: |
-          docker-compose up -d
+          docker compose up -d
           echo "Waiting for services to become healthy..."
           for service in deploy-app deploy-postgres; do
             for i in {1..12}; do
-              status=$(docker inspect --format='{{.State.Health.Status}}' $(docker-compose ps -q $service))
+              status=$(docker inspect --format='{{.State.Health.Status}}' $(docker compose ps -q $service))
               echo "$service health: $status"
               if [ "$status" = "healthy" ]; then
                 break
               fi
               sleep 5
             done
+            if [ "$status" != "healthy" ]; then
+              echo "ERROR: $service did not become healthy in time"
+              exit 1  # <- workflow упадёт здесь
+            fi
           done
 
       # 7. Push Docker image (skip on PR)
@@ -100,4 +104,4 @@ jobs:
       # 9. Stop and remove containers
       - name: Stop containers
         if: always()
-        run: docker-compose down
+        run: docker compose down
