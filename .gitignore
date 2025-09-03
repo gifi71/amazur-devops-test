@@ -1,2 +1,113 @@
-.venv
+# ---------------------
+# Python
+# ---------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyi
+*.egg-info/
+*.egg
+*.whl
+*.manifest
+*.spec
+*.log
+*.sqlite3
 .env
+.env.local
+*.env
+.venv/
+venv/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+__pypackages__/
+
+# ---------------------
+# VSCode / IDE
+# ---------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ---------------------
+# Byte-compiled / C extensions
+# ---------------------
+*.so
+
+# ---------------------
+# Docker
+# ---------------------
+*.dockerignore
+docker-compose.override.yml
+**/docker-compose.override.yml
+**/docker-compose.override.yaml
+**/Dockerfile.*
+**/Dockerfile.dev
+*.log
+docker-compose.override.*
+**/.docker/
+
+# ---------------------
+# Alembic / Migrations
+# ---------------------
+migrations/__pycache__/
+migrations/*.pyc
+migrations/*.py[cod]
+migrations/*.sqlite3
+
+# ---------------------
+# Pytest / Coverage
+# ---------------------
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# ---------------------
+# System
+# ---------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
+
+# ---------------------
+# Logs
+# ---------------------
+logs/
+*.log
+*.out
+
+# ---------------------
+# IDE configs
+# ---------------------
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# ---------------------
+# Secrets / Keys
+# ---------------------
+*.pem
+*.key
+*.crt
+*.jks
+
+# ---------------------
+# Misc
+# ---------------------
+*.pickle
+*.db
