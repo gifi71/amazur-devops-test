@@ -7,16 +7,20 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --prefix=/install -r requirements.txt
 
-# ===== Stage 2: final image =====
+
 FROM python:3.11-slim
 
-RUN addgroup --system appgroup && adduser --system --group appuser
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 
 COPY --from=builder /install /usr/local
 
 COPY app/ ./app
+COPY migrations/ ./migrations
+COPY alembic.ini ./
+
+RUN chown -R appuser:appgroup /app
 
 USER appuser
 
