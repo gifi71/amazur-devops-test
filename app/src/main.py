@@ -23,11 +23,6 @@ class ItemCreate(BaseModel):
     def round_price(cls, v):
         return round(v, 2)
 
-
-# TODO: Move to DB
-# items = []
-# counter = 0
-
 def get_db():
     db = SessionLocal()
     try:
@@ -36,7 +31,7 @@ def get_db():
         db.close()
 
 
-# TODO: Unicorn logger
+# TODO: JSON logging
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
@@ -77,17 +72,6 @@ def health():
 
 
 @app.post("/add", status_code=status.HTTP_201_CREATED)
-#def add_item(item: ItemCreate):
-#    global counter
-#    counter += 1
-#    new_item = {
-#        "id": counter,
-#        "name": item.name,
-#        "price": item.price,
-#        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-#    }
-#    items.append(new_item)
-#    return new_item
 def add_item(item: ItemCreate, db: Session = Depends(get_db)):
     db_item = Item(name=item.name, price=item.price)
     db.add(db_item)
@@ -102,13 +86,6 @@ def add_item(item: ItemCreate, db: Session = Depends(get_db)):
 
 
 @app.get("/stats")
-#def get_stats():
-#    if not items:
-#        return {"count": 0, "avg_price": 0}
-#
-#    total = sum(i["price"] for i in items)
-#    avg_price = round(total / len(items), 2)
-#    return {"count": len(items), "avg_price": avg_price}
 def get_stats(db: Session = Depends(get_db)):
     count = db.query(Item).count()
     avg_price = db.query(func.avg(Item.price)).scalar() or 0

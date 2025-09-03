@@ -1,19 +1,16 @@
 ---
 
 services:
-#  app:
-#    build: ..
-#    ports:
-#      - "8080:8080"
-#    env_file:
-#      - ../.env
-#    depends_on:
-#      - postgres
-#    healthcheck:
-#      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
+  app:
+    build: ..
+    container_name: app
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../.env
+    depends_on:
+      - postgres
+
 
   postgres:
     image: postgres:14
