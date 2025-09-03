@@ -52,7 +52,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       # 6. Build Docker image with Buildx (don't push on PR)
-      - name: Build and push Docker image
+      - name: Build Docker image
         id: build-and-push
         uses: docker/build-push-action@v5
         with:
@@ -66,6 +66,7 @@ jobs:
       # 7. Run containers and wait for healthcheck
       - name: Start containers and wait for health
         run: |
+          cd deploy
           docker compose up -d
           echo "Waiting for services to become healthy..."
           for service in deploy-app deploy-postgres; do
