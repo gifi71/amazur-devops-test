@@ -1,12 +1,16 @@
-from fastapi import FastAPI, Request, HTTPException, status
+from fastapi import FastAPI, Request, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field, validator
+from sqlalchemy.orm import Session
 from uuid import uuid4
 from datetime import datetime, timezone
 import logging
 import time
+
+from .db import SessionLocal
+from .models import Item
 
 app = FastAPI(title="Amazur Autotrade: DevOps Backend Engineer Test Task", version="0.1.0")
 
@@ -21,8 +25,15 @@ class ItemCreate(BaseModel):
 
 
 # TODO: Move to DB
-items = []
-counter = 0
+# items = []
+# counter = 0
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 # TODO: Unicorn logger
@@ -66,27 +77,42 @@ def health():
 
 
 @app.post("/add", status_code=status.HTTP_201_CREATED)
-def add_item(item: ItemCreate):
-    global counter
-    counter += 1
-    new_item = {
-        "id": counter,
-        "name": item.name,
-        "price": item.price,
-        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+#def add_item(item: ItemCreate):
+#    global counter
+#    counter += 1
+#    new_item = {
+#        "id": counter,
+#        "name": item.name,
+#        "price": item.price,
+#        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+#    }
+#    items.append(new_item)
+#    return new_item
+def add_item(item: ItemCreate, db: Session = Depends(get_db)):
+    db_item = Item(name=item.name, price=item.price)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return {
+        "id": db_item.id,
+        "name": db_item.name,
+        "price": float(db_item.price),
+        "created_at": db_item.created_at.strftime("%Y-%m-%dT%H:%M:%SZ")
     }
-    items.append(new_item)
-    return new_item
 
 
 @app.get("/stats")
-def get_stats():
-    if not items:
-        return {"count": 0, "avg_price": 0}
-
-    total = sum(i["price"] for i in items)
-    avg_price = round(total / len(items), 2)
-    return {"count": len(items), "avg_price": avg_price}
+#def get_stats():
+#    if not items:
+#        return {"count": 0, "avg_price": 0}
+#
+#    total = sum(i["price"] for i in items)
+#    avg_price = round(total / len(items), 2)
+#    return {"count": len(items), "avg_price": avg_price}
+def get_stats(db: Session = Depends(get_db)):
+    count = db.query(Item).count()
+    avg_price = db.query(func.avg(Item.price)).scalar() or 0
+    return {"count": count, "avg_price": round(float(avg_price), 2)}
 
 
 @app.exception_handler(RequestValidationError)
