@@ -3,11 +3,12 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field, validator
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from datetime import datetime, timezone
 import logging
-import time
+import time, os
 
 from .db import SessionLocal
 from .models import Item
@@ -92,6 +93,14 @@ def get_stats(db: Session = Depends(get_db)):
     return {"count": count, "avg_price": round(float(avg_price), 2)}
 
 
+if os.getenv("APP_ENV") == "test":
+    @app.post("/test/clear_items")
+    def clear_items(db: Session = Depends(get_db)):
+        db.query(Item).delete()
+        db.commit()
+        return {"status": "ok"}
+    
+    
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = [{"loc": e["loc"], "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
