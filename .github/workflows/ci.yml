@@ -63,7 +63,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # 7. Run containers and wait for healthcheck
+      # 7. Create .env
+      - name: Create .env for CI
+        run: |
+          cp .env.example .env
+
+      # 8. Run containers and wait for healthcheck
       - name: Start containers and wait for health
         run: |
           cd deploy
@@ -84,7 +89,7 @@ jobs:
             fi
           done
 
-      # 7. Push Docker image (skip on PR)
+      # 9. Push Docker image (skip on PR)
       - name: Push Docker image
         if: ${{ github.event_name != 'pull_request' }}
         uses: docker/build-push-action@v5
@@ -94,7 +99,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: ${{ steps.meta.outputs.labels }}
 
-      # 8. Sign the published Docker image (skip on PR)
+      # 10. Sign the published Docker image (skip on PR)
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
         env:
@@ -102,7 +107,7 @@ jobs:
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-      # 9. Stop and remove containers
+      # 11. Stop and remove containers
       - name: Stop containers
         if: always()
-        run: docker compose down
+        run: cd deploy && docker compose down
