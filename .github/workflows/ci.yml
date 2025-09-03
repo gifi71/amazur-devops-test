@@ -26,8 +26,10 @@ jobs:
 
       # 2. Install cosign (skip on PR)
       - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v2.2.4
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: sigstore/cosign-installer@v3.5.0
+        with:
+          cosign-release: 'v2.2.4'
 
       # 3. Set up Docker Buildx
       - name: Set up Docker Buildx
@@ -35,18 +37,33 @@ jobs:
 
       # 4. Docker login (skip on PR)
       - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' }}
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 5. Build Docker images via compose
-      - name: Build Docker images
-        run: docker-compose build
+      # 5. Extract metadata (tags, labels) for Docker
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      # 6. Run containers and wait for healthcheck
+      # 6. Build Docker image with Buildx (don't push on PR)
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 7. Run containers and wait for healthcheck
       - name: Start containers and wait for health
         run: |
           docker-compose up -d
@@ -64,19 +81,21 @@ jobs:
 
       # 7. Push Docker image (skip on PR)
       - name: Push Docker image
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' }}
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: ${{ steps.meta.outputs.labels }}
 
       # 8. Sign the published Docker image (skip on PR)
       - name: Sign the published Docker image
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' }}
         env:
-          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-        run: cosign sign --yes $TAGS
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
       # 9. Stop and remove containers
       - name: Stop containers
