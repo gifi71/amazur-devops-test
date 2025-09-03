@@ -74,7 +74,7 @@ jobs:
           cd deploy
           docker compose up -d
           echo "Waiting for services to become healthy..."
-          for service in deploy-app deploy-postgres; do
+          for service in app postgres; do
             for i in {1..12}; do
               status=$(docker inspect --format='{{.State.Health.Status}}' $(docker compose ps -q $service))
               echo "$service health: $status"
