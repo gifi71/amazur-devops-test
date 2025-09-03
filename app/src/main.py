@@ -4,7 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field, validator
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import time
 
@@ -24,6 +24,8 @@ class ItemCreate(BaseModel):
 items = []
 counter = 0
 
+
+# TODO: Unicorn logger
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
@@ -44,7 +46,7 @@ async def log_requests(request: Request, call_next):
 
     process_time = (time.time() - start_time) * 1000
     log_data = {
-        "ts": datetime.utcnow().isoformat(),
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "level": "INFO",
         "method": request.method,
         "path": request.url.path,
@@ -71,7 +73,7 @@ def add_item(item: ItemCreate):
         "id": counter,
         "name": item.name,
         "price": item.price,
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     items.append(new_item)
     return new_item
