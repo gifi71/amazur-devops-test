@@ -16,7 +16,8 @@ from .db import SessionLocal
 from .models import Item
 
 app = FastAPI(
-    title="Amazur Autotrade: DevOps Backend Engineer Test Task", version="0.1.0"
+    title="Amazur Autotrade: DevOps Backend Engineer Test Task",
+    version="0.1.0",
 )
 
 
@@ -108,9 +109,12 @@ if os.getenv("APP_ENV") == "test":
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+):
     errors = [
-        {"loc": e["loc"], "msg": e["msg"], "type": e["type"]} for e in exc.errors()
+        {"loc": e["loc"], "msg": e["msg"], "type": e["type"]}
+        for e in exc.errors()
     ]
     return JSONResponse(
         status_code=400,
@@ -120,7 +124,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+):
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.detail},

@@ -49,7 +49,9 @@ async def test_add_edge_prices(async_client, price):
 
 @pytest.mark.asyncio
 async def test_price_rounding(async_client):
-    resp = await async_client.post("/add", json={"name": "RoundTest", "price": 1.2345})
+    resp = await async_client.post(
+        "/add", json={"name": "RoundTest", "price": 1.2345}
+    )
     assert resp.status_code == 201
     data = resp.json()
     # Проверка округления до 2 знаков
