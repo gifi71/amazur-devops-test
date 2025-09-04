@@ -31,7 +31,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements/dev.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/dev.txt') }}
 
       - name: Install dev dependencies
         run: pip install -r requirements/dev.txt
@@ -100,7 +100,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements/dev.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/dev.txt') }}
 
       - name: Download Docker image artifact
         uses: actions/download-artifact@v4
