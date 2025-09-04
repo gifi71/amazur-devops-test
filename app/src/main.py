@@ -1,19 +1,23 @@
-from fastapi import FastAPI, Request, HTTPException, status, Depends
-from fastapi.responses import JSONResponse
+import logging
+import os
+import time
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from uuid import uuid4
-from datetime import datetime, timezone
-import logging
-import time, os
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .db import SessionLocal
 from .models import Item
 
-app = FastAPI(title="Amazur Autotrade: DevOps Backend Engineer Test Task", version="0.1.0")
+app = FastAPI(
+    title="Amazur Autotrade: DevOps Backend Engineer Test Task", version="0.1.0"
+)
 
 
 class ItemCreate(BaseModel):
@@ -23,6 +27,7 @@ class ItemCreate(BaseModel):
     @validator("price")
     def round_price(cls, v):
         return round(v, 2)
+
 
 def get_db():
     db = SessionLocal()
@@ -82,7 +87,7 @@ def add_item(item: ItemCreate, db: Session = Depends(get_db)):
         "id": db_item.id,
         "name": db_item.name,
         "price": float(db_item.price),
-        "created_at": db_item.created_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+        "created_at": db_item.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
 
@@ -94,16 +99,19 @@ def get_stats(db: Session = Depends(get_db)):
 
 
 if os.getenv("APP_ENV") == "test":
+
     @app.post("/test/clear_items")
     def clear_items(db: Session = Depends(get_db)):
         db.query(Item).delete()
         db.commit()
         return {"status": "ok"}
-    
-    
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    errors = [{"loc": e["loc"], "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+    errors = [
+        {"loc": e["loc"], "msg": e["msg"], "type": e["type"]} for e in exc.errors()
+    ]
     return JSONResponse(
         status_code=400,
         content={"error": "Validation failed", "details": errors},
