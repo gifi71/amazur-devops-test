@@ -123,18 +123,8 @@ async def validation_exception_handler(
     )
 
 
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(
-    request: Request, exc: StarletteHTTPException
-):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.detail},
-        headers={"Content-Type": "application/json"},
-    )
-
-
 @app.exception_handler(HTTPException)
+@app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
