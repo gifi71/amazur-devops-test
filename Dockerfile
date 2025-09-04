@@ -4,8 +4,8 @@ RUN pip install --upgrade pip
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --prefix=/install -r requirements.txt
+COPY requirements/base.txt .
+RUN pip install --prefix=/install -r base.txt
 
 
 FROM python:3.11-slim
