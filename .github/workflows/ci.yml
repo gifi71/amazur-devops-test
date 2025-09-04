@@ -69,7 +69,7 @@ jobs:
 
       - name: Save Docker image to artifact
         run: |
-          TAG=${{ steps.docker_build.outputs.tags }}
+          TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           docker save "$TAG" | gzip > image.tar.gz
         shell: bash
 
