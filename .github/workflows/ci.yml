@@ -163,6 +163,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build with cache and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v5.0.0
@@ -172,7 +175,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
