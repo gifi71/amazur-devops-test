@@ -88,7 +88,13 @@ jobs:
             fi
           done
 
-      # 9. Push Docker image (skip on PR)
+      # 9. Run integration tests
+      - name: Run integration tests
+        run: |
+          pip install -r requirements.txt
+          pytest -v app/tests
+
+      # 10. Push Docker image (skip on PR)
       - name: Push Docker image
         id: push-image
         if: ${{ github.event_name != 'pull_request' }}
@@ -99,7 +105,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: ${{ steps.meta.outputs.labels }}
 
-      # 10. Sign the published Docker image (skip on PR)
+      # 11. Sign the published Docker image (skip on PR)
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
         env:
@@ -107,7 +113,7 @@ jobs:
           DIGEST: ${{ steps.push-image.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-      # 11. Stop and remove containers
+      # 12. Stop and remove containers
       - name: Stop containers
         if: always()
         run: cd deploy && docker compose down
