@@ -17,6 +17,7 @@ services:
       start_period: 5s
 
   app:
+    image: ghcr.io/gifi71/amazur-devops-test:latest
     build: ..
     container_name: app
     ports:
