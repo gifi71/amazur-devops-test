@@ -16,7 +16,7 @@ from .db import SessionLocal
 from .models import Item
 
 app = FastAPI(
-    title="Amazur Autotrade: DevOps Backend Engineer Test Task",
+    title="amazur-devops-test",
     version="0.1.0",
 )
 
