@@ -12,6 +12,32 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13.3"
+
+      - name: Install dependencies
+        run: |
+          pip install flake8 black isort mypy
+
+      - name: Run linters
+        run: |
+          echo "Running flake8..."
+          flake8 app/
+          echo "Running black..."
+          black --check app/
+          echo "Running isort..."
+          isort --check-only app/
+          echo "Running mypy..."
+          mypy app/
+
   build:
     runs-on: ubuntu-latest
     permissions:
@@ -91,7 +117,7 @@ jobs:
       # 9. Run integration tests
       - name: Run integration tests
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements/dev.txt
           pytest -v app/tests
 
       # 10. Push Docker image (skip on PR)
