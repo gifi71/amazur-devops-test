@@ -75,6 +75,18 @@ coverage.xml
 .pytest_cache/
 
 # ---------------------
+# Linters / Formatters
+# ---------------------
+*.black
+*.isort.cfg
+*.isort
+.mypy_cache/
+.dmypy.json
+.pre-commit-config.yaml
+.pre-commit/
+.pre-commit-hooks.yaml
+
+# ---------------------
 # System
 # ---------------------
 .DS_Store
