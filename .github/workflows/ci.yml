@@ -39,6 +39,7 @@ jobs:
           mypy app/
 
   build:
+    needs: lint
     runs-on: ubuntu-latest
     permissions:
       contents: read
