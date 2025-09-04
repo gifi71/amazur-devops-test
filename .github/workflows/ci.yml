@@ -28,28 +28,19 @@ jobs:
           python-version: "3.13.3"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements/dev.txt
+        run: pip install -r requirements/dev.txt
 
       - name: Run flake8
-        run: |
-          echo "Running flake8..."
-          flake8 app/
+        run: flake8 app/
 
       - name: Run black
-        run: | 
-          echo "Running black..."
-          black --check app/
+        run: black --check app/
 
       - name: Run isort
-        run: |
-          echo "Running isort..."
-          isort --check-only app/
+        run: isort --check-only app/
       
       - name: Run mypy
-        run: |
-          echo "Running mypy..."
-          mypy app/
+        run: mypy app/
 
 
   build-image:
@@ -61,7 +52,6 @@ jobs:
     outputs:
       tags: ${{ steps.meta.outputs.tags }}
       labels: ${{ steps.meta.outputs.labels }}
-      digest: ${{ steps.docker_build.outputs.digest }}
 
     steps:
       - name: Checkout repository
@@ -76,7 +66,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build Docker image
+      - name: Build Docker image (no push)
         id: docker_build
         uses: docker/build-push-action@v5
         with:
@@ -86,6 +76,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Save Docker image to artifact
+        run: |
+          TAG=$(echo "${{ steps.meta.outputs.tags }}" | cut -d',' -f1)
+          docker save "$TAG" | gzip > image.tar.gz
+        shell: bash
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar.gz
 
 
   integration-tests:
@@ -98,14 +100,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
       - name: Load Docker image
-        run: |
-          TAG=$(echo "${{ needs.build-image.outputs.tags }}" | cut -d',' -f1)
-          docker pull $TAG
+        run: docker load < image.tar.gz
 
       - name: Create .env for CI
-        run: |
-          cp .env.example .env
+        run: cp .env.example .env
 
       - name: Start containers and wait for health
         run: |
@@ -146,6 +150,17 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: docker load < image.tar.gz
+
       - name: Install cosign (only on non-PR)
         if: ${{ github.event_name != 'pull_request' }}
         uses: sigstore/cosign-installer@v3.5.0
@@ -163,17 +178,13 @@ jobs:
       - name: Push Docker image
         id: push-image
         if: ${{ github.event_name != 'pull_request' }}
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ needs.build-image.outputs.tags }}
-          labels: ${{ needs.build-image.outputs.labels }}
-          cache-from: type=gha
+        run: |
+          TAG=$(echo "${{ needs.build-image.outputs.tags }}" | cut -d',' -f1)
+          docker push "$TAG"
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
-        env:
-          TAGS: ${{ needs.build-image.outputs.tags }}
-          DIGEST: ${{ needs.build-image.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: |
+          TAG=$(echo "${{ needs.build-image.outputs.tags }}" | cut -d',' -f1)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$TAG")
+          cosign sign --yes "$DIGEST"
