@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.13.3"
 
-      - name: Install dependencies
+      - name: Install dev dependencies
         run: pip install -r requirements/dev.txt
 
       - name: Run flake8
@@ -49,22 +49,12 @@ jobs:
     permissions:
       contents: read
 
-    outputs:
-      tags: ${{ steps.meta.outputs.tags }}
-      labels: ${{ steps.meta.outputs.labels }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build Docker image (no push)
         id: docker_build
@@ -73,14 +63,13 @@ jobs:
           context: .
           push: false
           load: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Save Docker image to artifact
         run: |
-          TAG=$(echo "${{ steps.meta.outputs.tags }}" | cut -d',' -f1)
+          TAG=${{ steps.docker_build.outputs.tags }}
           docker save "$TAG" | gzip > image.tar.gz
         shell: bash
 
@@ -143,7 +132,8 @@ jobs:
 
 
   push-and-sign:
-    needs: [integration-tests, build-image]
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: integration-tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -154,16 +144,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Docker image artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-
-      - name: Load Docker image
-        run: docker load < image.tar.gz
-
       - name: Install cosign (only on non-PR)
-        if: ${{ github.event_name != 'pull_request' }}
         uses: sigstore/cosign-installer@v3.5.0
         with:
           cosign-release: 'v2.2.4'
@@ -176,16 +157,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push Docker image
-        id: push-image
-        if: ${{ github.event_name != 'pull_request' }}
-        run: |
-          TAG=$(echo "${{ needs.build-image.outputs.tags }}" | cut -d',' -f1)
-          docker push "$TAG"
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build with cache and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
-        run: |
-          TAG=$(echo "${{ needs.build-image.outputs.tags }}" | cut -d',' -f1)
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$TAG")
-          cosign sign --yes "$DIGEST"
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
