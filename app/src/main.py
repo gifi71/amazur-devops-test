@@ -9,11 +9,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .db import SessionLocal
+from .db import AsyncSessionLocal
 from .models import Item
 
 app = FastAPI(
@@ -35,12 +35,9 @@ class ItemCreate(BaseModel):
         return v
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 
 
 logger = logging.getLogger("app")
@@ -78,16 +75,16 @@ async def log_requests(request: Request, call_next):
 
 
 @app.get("/health", tags=["Health"])
-def health():
+async def health():
     return {"status": "ok"}
 
 
 @app.post("/add", status_code=status.HTTP_201_CREATED, tags=["Items"])
-def add_item(item: ItemCreate, db: Session = Depends(get_db)):
+async def add_item(item: ItemCreate, db: AsyncSession = Depends(get_db)):
     db_item = Item(name=item.name, price=item.price)
     db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
+    await db.commit()
+    await db.refresh(db_item)
 
     return {
         "status": "ok",
@@ -99,9 +96,12 @@ def add_item(item: ItemCreate, db: Session = Depends(get_db)):
 
 
 @app.get("/stats", tags=["Stats"])
-def get_stats(db: Session = Depends(get_db)):
-    count = db.query(func.count(Item.id)).scalar()
-    avg_price = db.query(func.avg(Item.price)).scalar() or 0
+async def get_stats(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(func.count(Item.id)))
+    count = result.scalar()
+
+    result = await db.execute(select(func.avg(Item.price)))
+    avg_price = result.scalar() or 0
 
     return {
         "status": "ok",
@@ -111,17 +111,17 @@ def get_stats(db: Session = Depends(get_db)):
 
 
 @app.get("/items", tags=["Items"])
-def get_items(
-    db: Session = Depends(get_db), page: int = 1, limit: int = 50
-) -> dict:
+async def get_items(
+    db: AsyncSession = Depends(get_db), page: int = 1, limit: int = 50
+):
+    limit = min(limit, 100)
 
-    if limit > 100:
-        limit = 100
-
-    total = db.query(func.count(Item.id)).scalar()
+    result = await db.execute(select(func.count(Item.id)))
+    total = result.scalar()
 
     query = select(Item).offset((page - 1) * limit).limit(limit)
-    results = db.execute(query).scalars().all()
+    result = await db.execute(query)
+    items = result.scalars().all()
 
     return {
         "status": "ok",
@@ -135,7 +135,7 @@ def get_items(
                 "price": float(item.price),
                 "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
             }
-            for item in results
+            for item in items
         ],
     }
 
@@ -143,11 +143,12 @@ def get_items(
 if os.getenv("APP_ENV") == "test":
 
     @app.post("/test/clear_items", tags=["Items"])
-    def clear_items(db: Session = Depends(get_db)):
-        db.query(Item).delete()
-        db.commit()
+    async def clear_items(db: AsyncSession = Depends(get_db)):
+        await db.execute(delete(Item))
+        await db.commit()
 
-        if db.query(func.count(Item.id)).scalar() > 0:
+        result = await db.execute(select(func.count(Item.id)))
+        if result.scalar() > 0:
             return {"status": "error", "error": "Items not deleted"}
 
         return {"status": "ok"}
