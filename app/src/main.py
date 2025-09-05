@@ -89,6 +89,7 @@ def add_item(item: ItemCreate, db: Session = Depends(get_db)):
     db.refresh(db_item)
 
     return {
+        "status": "ok",
         "id": db_item.id,
         "name": db_item.name,
         "price": float(db_item.price),
@@ -101,7 +102,11 @@ def get_stats(db: Session = Depends(get_db)):
     count = db.query(func.count(Item.id)).scalar()
     avg_price = db.query(func.avg(Item.price)).scalar() or 0
 
-    return {"count": count, "avg_price": round(float(avg_price), 2)}
+    return {
+        "status": "ok",
+        "count": count,
+        "avg_price": round(float(avg_price), 2),
+    }
 
 
 @app.get("/items", tags=["Items"])
@@ -118,6 +123,7 @@ def get_items(
     results = db.execute(query).scalars().all()
 
     return {
+        "status": "ok",
         "page": page,
         "limit": limit,
         "total": total,
@@ -141,7 +147,7 @@ if os.getenv("APP_ENV") == "test":
         db.commit()
 
         if db.query(func.count(Item.id)).scalar() > 0:
-            return {"status": "error", "message": "Items not deleted"}
+            return {"status": "error", "error": "Items not deleted"}
 
         return {"status": "ok"}
 
@@ -156,7 +162,11 @@ async def validation_exception_handler(
     ]
     return JSONResponse(
         status_code=400,
-        content={"error": "Validation failed", "details": errors},
+        content={
+            "status": "error",
+            "error": "Validation failed",
+            "details": errors,
+        },
         headers={"Content-Type": "application/json"},
     )
 
@@ -166,7 +176,7 @@ async def validation_exception_handler(
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": exc.detail},
+        content={"status": "error", "error": exc.detail},
         headers={"Content-Type": "application/json"},
     )
 
@@ -176,6 +186,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unexpected error: {exc}")
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal Server Error"},
+        content={"status": "error", "error": "Internal Server Error"},
         headers={"Content-Type": "application/json"},
     )
