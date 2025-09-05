@@ -192,7 +192,10 @@ async def test_metrics_endpoint_exists(async_client):
 async def test_metrics_request_counts(async_client):
 
     def get_metric_value(text, handler, method, status):
-        pattern = rf'http_requests_total{{handler="{handler}",method="{method}",status="{status}"}} (\d+\.?\d*)'
+        pattern = (
+            rf'http_requests_total{{handler="{handler}",'
+            rf'method="{method}",status="{status}"}} (\d+(?:\.\d+)?)'
+        )
         match = re.search(pattern, text)
         return float(match.group(1)) if match else 0.0
 
