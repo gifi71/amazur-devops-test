@@ -20,7 +20,6 @@ async def clear_items_table(async_client):
 
 @pytest.fixture(scope="session", autouse=True)
 def wait_for_app(base_url):
-    """Ждём пока сервис станет доступен по /health"""
     timeout = 30
     start = time.time()
     url = f"{base_url}/health"
