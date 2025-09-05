@@ -140,6 +140,9 @@ if os.getenv("APP_ENV") == "test":
         db.query(Item).delete()
         db.commit()
 
+        if db.query(func.count(Item.id)).scalar() > 0:
+            return {"status": "error", "message": "Items not deleted"}
+
         return {"status": "ok"}
 
 
