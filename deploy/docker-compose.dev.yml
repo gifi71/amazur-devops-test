@@ -7,13 +7,13 @@ services:
     env_file:
       - ../.env
     volumes:
-      - ../pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data 
     ports:
       - 5432:5432
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
-      interval: 30s
+      interval: 10s
       timeout: 3s
       retries: 5
       start_period: 5s
@@ -50,3 +50,6 @@ services:
       retries: 5
       start_period: 5s
 
+
+volumes:
+  pgdata:
