@@ -7,8 +7,8 @@ from uuid import uuid4
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, validator
-from sqlalchemy import func
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -25,8 +25,9 @@ class ItemCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     price: float = Field(..., gt=0, le=10_000_000)
 
-    @validator("price")
-    def round_price(cls, v):
+    @field_validator("price")
+    @classmethod
+    def round_price(cls, v: float) -> float:
         return round(v, 2)
 
 
@@ -38,7 +39,6 @@ def get_db():
         db.close()
 
 
-# TODO: JSON logging
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
@@ -97,6 +97,35 @@ def get_stats(db: Session = Depends(get_db)):
     count = db.query(Item).count()
     avg_price = db.query(func.avg(Item.price)).scalar() or 0
     return {"count": count, "avg_price": round(float(avg_price), 2)}
+
+
+@app.get("/items", tags=["Items"])
+def get_items(
+    db: Session = Depends(get_db), page: int = 1, limit: int = 50
+) -> dict:
+
+    if limit > 100:
+        limit = 100
+
+    total = db.query(func.count(Item.id)).scalar()
+
+    query = select(Item).offset((page - 1) * limit).limit(limit)
+    results = db.execute(query).scalars().all()
+
+    return {
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "items": [
+            {
+                "id": item.id,
+                "name": item.name,
+                "price": float(item.price),
+                "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+            for item in results
+        ],
+    }
 
 
 if os.getenv("APP_ENV") == "test":
