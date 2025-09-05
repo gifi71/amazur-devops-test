@@ -16,25 +16,6 @@ services:
       retries: 5
       start_period: 5s
 
-  app:
-    image: ghcr.io/gifi71/amazur-devops-test:latest
-    build: ..
-    container_name: app
-    ports:
-      - "8080:8080"
-    env_file:
-      - ../.env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-
   migrate:
     image: ghcr.io/gifi71/amazur-devops-test:latest
     build: ..
@@ -46,3 +27,25 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+
+  app:
+    image: ghcr.io/gifi71/amazur-devops-test:latest
+    build: ..
+    container_name: app
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
