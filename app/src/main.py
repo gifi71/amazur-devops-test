@@ -77,12 +77,12 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 def health():
     return {"status": "ok"}
 
 
-@app.post("/add", status_code=status.HTTP_201_CREATED)
+@app.post("/add", status_code=status.HTTP_201_CREATED, tags=["Items"])
 def add_item(item: ItemCreate, db: Session = Depends(get_db)):
     db_item = Item(name=item.name, price=item.price)
     db.add(db_item)
@@ -98,7 +98,7 @@ def add_item(item: ItemCreate, db: Session = Depends(get_db)):
     }
 
 
-@app.get("/stats")
+@app.get("/stats", tags=["Stats"])
 def get_stats(db: Session = Depends(get_db)):
     count = db.query(func.count(Item.id)).scalar()
     avg_price = db.query(func.avg(Item.price)).scalar() or 0
@@ -142,7 +142,7 @@ def get_items(
 
 if os.getenv("APP_ENV") == "test":
 
-    @app.post("/test/clear_items")
+    @app.post("/test/clear_items", tags=["Items"])
     def clear_items(db: Session = Depends(get_db)):
         db.query(Item).delete()
         db.commit()
@@ -192,4 +192,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
     )
 
 
-Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+Instrumentator().instrument(app).expose(
+    app, endpoint="/metrics", tags=["Stats"]
+)
