@@ -1,7 +1,6 @@
 FROM python:3.11-slim AS builder
 
-RUN pip install --no-cache-dir --upgrade pip==25.2
-
+RUN pip install --no-cache-dir --upgrade pip==25.2 setuptools==80.9.0
 WORKDIR /app
 
 COPY requirements/base.txt .
