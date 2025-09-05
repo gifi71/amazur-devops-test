@@ -117,11 +117,12 @@ async def get_items(
     limit = min(limit, 100)
 
     result = await db.execute(select(func.count(Item.id)))
-    total = result.scalar()
+    total: int = result.scalar_one()
 
-    query = select(Item).offset((page - 1) * limit).limit(limit)
-    result = await db.execute(query)
-    items = result.scalars().all()
+    items_result = await db.execute(
+        select(Item).offset((page - 1) * limit).limit(limit)
+    )
+    items: list[Item] = list(items_result.scalars().all())
 
     return {
         "status": "ok",
@@ -148,7 +149,7 @@ if os.getenv("APP_ENV") == "test":
         await db.commit()
 
         result = await db.execute(select(func.count(Item.id)))
-        if result.scalar() > 0:
+        if result.scalar_one() > 0:
             return {"status": "error", "error": "Items not deleted"}
 
         return {"status": "ok"}
