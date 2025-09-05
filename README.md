@@ -5,20 +5,6 @@ This project was created as a backend/DevOps test task.
 
 ---
 
-## 🔹 Table of Contents
-
-- [Project Overview](#project-overview)
-- [Tech Stack](#tech-stack)
-- [Installation & Running](#installation--running)
-- [Docker Compose](#docker-compose)
-- [API Endpoints](#api-endpoints)
-- [Testing](#testing)
-- [CI/CD](#cicd)
-- [Database Migrations](#database-migrations)
-- [TODO](#todo)
-
----
-
 ## 🔹 Project Overview
 
 This project is a minimal HTTP service with PostgreSQL.  
