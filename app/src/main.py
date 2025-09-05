@@ -7,6 +7,7 @@ from uuid import uuid4
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -189,3 +190,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
         content={"status": "error", "error": "Internal Server Error"},
         headers={"Content-Type": "application/json"},
     )
+
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")

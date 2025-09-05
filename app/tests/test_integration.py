@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 import pytest
@@ -175,3 +176,52 @@ async def test_items_limit_cap(async_client):
     assert data["limit"] == 100
     assert data["total"] == 5
     assert len(data["items"]) == 5
+
+
+@pytest.mark.asyncio
+async def test_metrics_endpoint_exists(async_client):
+    resp = await async_client.get("/metrics")
+    assert resp.status_code == 200
+
+    text = resp.text
+    assert "# HELP" in text
+    assert "# TYPE" in text
+
+
+@pytest.mark.asyncio
+async def test_metrics_request_counts(async_client):
+
+    def get_metric_value(text, handler, method, status):
+        pattern = rf'http_requests_total{{handler="{handler}",method="{method}",status="{status}"}} (\d+\.?\d*)'
+        match = re.search(pattern, text)
+        return float(match.group(1)) if match else 0.0
+
+    async def fetch_metrics():
+        resp = await async_client.get("/metrics")
+        assert resp.status_code == 200
+        return resp.text
+
+    text_before = await fetch_metrics()
+    add_before = get_metric_value(text_before, "/add", "POST", "2xx")
+    stats_before = get_metric_value(text_before, "/stats", "GET", "2xx")
+    health_before = get_metric_value(text_before, "/health", "GET", "2xx")
+
+    for i in range(1, 6):
+        await async_client.post("/add", json={"name": f"Item{i}", "price": i})
+
+    await async_client.get("/stats")
+    await async_client.get("/health")
+
+    text_after = await fetch_metrics()
+
+    assert (
+        get_metric_value(text_after, "/add", "POST", "2xx") - add_before >= 5
+    )
+    assert (
+        get_metric_value(text_after, "/stats", "GET", "2xx") - stats_before
+        >= 1
+    )
+    assert (
+        get_metric_value(text_after, "/health", "GET", "2xx") - health_before
+        >= 1
+    )
