@@ -23,12 +23,15 @@ app = FastAPI(
 
 class ItemCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
-    price: float = Field(..., gt=0, le=10_000_000)
+    price: float = Field(..., le=10_000_000)
 
     @field_validator("price")
     @classmethod
     def round_price(cls, v: float) -> float:
-        return round(v, 2)
+        v = round(v, 2)
+        if v <= 0:
+            raise ValueError("Price must be greater than 0 after rounding")
+        return v
 
 
 def get_db():
@@ -84,6 +87,7 @@ def add_item(item: ItemCreate, db: Session = Depends(get_db)):
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
+
     return {
         "id": db_item.id,
         "name": db_item.name,
@@ -94,8 +98,9 @@ def add_item(item: ItemCreate, db: Session = Depends(get_db)):
 
 @app.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
-    count = db.query(Item).count()
+    count = db.query(func.count(Item.id)).scalar()
     avg_price = db.query(func.avg(Item.price)).scalar() or 0
+
     return {"count": count, "avg_price": round(float(avg_price), 2)}
 
 
@@ -134,6 +139,7 @@ if os.getenv("APP_ENV") == "test":
     def clear_items(db: Session = Depends(get_db)):
         db.query(Item).delete()
         db.commit()
+
         return {"status": "ok"}
 
 
