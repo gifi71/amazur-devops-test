@@ -10,6 +10,9 @@ database_url = os.getenv("DATABASE_URL")
 if database_url is None:
     raise ValueError("DATABASE_URL is not set in the environment")
 
+if not database_url.startswith("postgresql+psycopg2://"):
+    database_url = "postgresql+psycopg2" + database_url[database_url.find("://"):]
+
 config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
