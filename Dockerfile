@@ -1,19 +1,19 @@
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 
 RUN pip install --no-cache-dir --upgrade pip==25.2 setuptools==80.9.0
 WORKDIR /app
 
 COPY requirements/base.txt .
-RUN pip install --no-cache-dir -r base.txt --prefix=/install
 
+RUN pip install --no-cache-dir -r base.txt
 
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 
-COPY --from=builder /install /usr/local
+COPY --from=builder /usr/local /usr/local
 
 COPY app/ ./app
 COPY migrations/ ./migrations
