@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -43,11 +44,7 @@ async def get_db():
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
-
-formatter = logging.Formatter(
-    '{"ts": "%(asctime)s", "level": "%(levelname)s", "msg": "%(message)s"}'
-)
-handler.setFormatter(formatter)
+handler.setFormatter(logging.Formatter("%(message)s"))
 logger.addHandler(handler)
 
 
@@ -68,7 +65,7 @@ async def log_requests(request: Request, call_next):
         "latency_ms": round(process_time, 2),
         "request_id": request_id,
     }
-    logger.info(log_data)
+    logger.info(json.dumps(log_data, ensure_ascii=False))
 
     response.headers["X-Request-ID"] = request_id
     return response
