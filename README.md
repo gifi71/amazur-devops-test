@@ -24,8 +24,9 @@ cp .env.example .env
 
 # Build and start the service
 cd deploy/
-docker compose up --build
-# or for dev
+# for prod (latest image from GHCR)
+docker compose up -d
+# or build from Dockerfile for dev
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 # Health check
