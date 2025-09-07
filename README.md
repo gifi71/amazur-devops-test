@@ -17,6 +17,7 @@ Runs with a single Docker Compose command. This project was created as a backend
 ```bash
 # Clone the repository
 git clone https://github.com/gifi71/amazur-devops-test.git
+cd amazur-devops-test
 
 # Copy environment variables
 cp .env.example .env
