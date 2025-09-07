@@ -19,7 +19,7 @@ from .models import Item
 
 app = FastAPI(
     title="amazur-devops-test",
-    version="0.1.0",
+    version="1.0.0",
 )
 
 
